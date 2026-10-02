@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.jors.boardkeeper",
+      "sha256_cert_fingerprints": [
+        "12:97:A7:D1:28:61:55:B5:87:68:F7:FC:05:4B:BD:17:5C:13:04:47:8B:A8:73:03:D7:BE:24:36:78:0D:9C:41"
+      ]
+    }
+  }
+]
