@@ -12,6 +12,48 @@
   trata. Quien manda el pase pone el nombre del juego en el propio mensaje
   (`EnlacePase.mensaje`), que es donde si se ve.
 -->
+<!--
+  B13 — EL SALTO VA AQUI, EN EL <head>, Y ESO NO ES UN DETALLE.
+
+  Estaba al final del <body> y el navegador pintaba la pagina entera antes de
+  ejecutarlo: se veia la web con su boton **un segundo** y despues saltaba. Un
+  script sincrono en el <head> corre **antes del primer fotograma**, asi que
+  quien tiene la app no llega a ver nada.
+
+  Y mientras se intenta, el documento va oculto (`visibility:hidden`): si el
+  navegador tarda en resolver el intent, lo que se veria es justo el parpadeo
+  que esto viene a quitar. La red de seguridad es el `setTimeout` de abajo —si
+  en 1,2 s seguimos aqui es que el salto no va a ocurrir y se enseña la pagina—,
+  porque dejar un documento invisible para siempre por un fallo raro es peor
+  que el parpadeo.
+-->
+<script>
+(function () {
+  var carga = location.hash.slice(1);
+  var yaFallo = /[?&]sinapp=1/.test(location.search);
+  if (!carga || yaFallo || !/Android/i.test(navigator.userAgent)) return;
+
+  // `intent://` y NO `location = 'boardkeeper://...'`: en Chrome de Android un
+  // esquema que nadie atiende da ERR_UNKNOWN_URL_SCHEME y **se lleva por
+  // delante esta pagina**, justo para el que no tiene la app. `intent://` trae
+  // su propio plan B con `S.browser_fallback_url`, que devuelve aqui con una
+  // marca para no entrar en bucle.
+  var vuelta = location.origin + location.pathname + '?sinapp=1' + location.hash;
+  var destino =
+    'intent://p/' + carga +
+    '#Intent;scheme=boardkeeper;package=com.jors.boardkeeper' +
+    ';S.browser_fallback_url=' + encodeURIComponent(vuelta) + ';end';
+
+  try {
+    document.documentElement.style.visibility = 'hidden';
+    setTimeout(function () {
+      document.documentElement.style.visibility = 'visible';
+    }, 1200);
+  } catch (e) { /* si no se puede ocultar, se vera el parpadeo y ya esta */ }
+
+  location.replace(destino);
+})();
+</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="BoardKeeper">
 <meta property="og:title" content="Te han pasado una partida">
@@ -141,32 +183,10 @@
   var abrir = document.getElementById('abrir');
   var crudo = document.getElementById('crudo');
 
-  // B13 — Si el enlace cae aqui es que Android no lo verifico (o que quien lo
-  // abre no tiene la app). Se salta **solo** a la app en vez de pedir que
-  // pulsen un boton: el esquema propio `boardkeeper://` no necesita
-  // verificacion y abre siempre si esta instalada.
-  //
-  // Pero NO con `location = 'boardkeeper://...'`: en Chrome de Android, navegar
-  // a un esquema que nadie atiende da `ERR_UNKNOWN_URL_SCHEME` y **se lleva por
-  // delante esta pagina**, justo para el que NO tiene la app, que es a quien
-  // habia que explicarle las cosas. Se usa `intent://`, que es lo que Chrome
-  // entiende en Android y lleva su propio plan B: `S.browser_fallback_url` es
-  // adonde va si la app no esta, y aqui apunta a esta misma pagina con una
-  // marca para no volver a intentarlo y quedarse en bucle.
-  //
-  // Fuera de Chrome/Android no se intenta nada y queda el boton, que funciona
-  // igual. Es la regla de siempre: donde el canal no responde, nada se rompe.
+  // El salto a la app ya se intento en el <head>, antes de pintar nada. Aqui
+  // abajo solo queda lo que se le enseña a quien se ha quedado: o no tiene la
+  // app, o no esta en Android.
   var yaFallo = /[?&]sinapp=1/.test(location.search);
-
-  function intentarSalto() {
-    if (yaFallo || !/Android/i.test(navigator.userAgent)) return;
-    var vuelta = location.origin + location.pathname + '?sinapp=1' + location.hash;
-    location.replace(
-      'intent://p/' + carga +
-      '#Intent;scheme=boardkeeper;package=com.jors.boardkeeper' +
-      ';S.browser_fallback_url=' + encodeURIComponent(vuelta) + ';end'
-    );
-  }
 
   if (!carga) {
     abrir.style.display = 'none';
@@ -174,7 +194,6 @@
   } else {
     abrir.href = 'boardkeeper://p/' + carga;
     crudo.textContent = carga;
-    intentarSalto();
     try {
       // base64url sin relleno, como lo genera la app.
       var b64 = carga.replace(/-/g, '+').replace(/_/g, '/');
