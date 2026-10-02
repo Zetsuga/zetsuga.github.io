@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Una partida de BoardKeeper</title>
 <!--
+  B13 — Para que WhatsApp y los demas chats pinten una **tarjeta** debajo del
+  enlace en vez de una tira de caracteres. El titulo es fijo a proposito: el
+  pase va detras de `#` y el fragmento **no llega al servidor**, asi que ni
+  este HTML ni el que genera la vista previa pueden saber de que partida se
+  trata. Quien manda el pase pone el nombre del juego en el propio mensaje
+  (`EnlacePase.mensaje`), que es donde si se ve.
+-->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BoardKeeper">
+<meta property="og:title" content="Te han pasado una partida">
+<meta property="og:description" content="Abrela en BoardKeeper y se guarda con sus jugadores y sus puntos.">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="Una partida compartida desde BoardKeeper.">
+<!--
   B13 — La página a la que lleva el enlace de un pase cuando quien lo abre NO
   tiene la app instalada.
 
