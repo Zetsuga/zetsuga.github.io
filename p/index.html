@@ -141,12 +141,40 @@
   var abrir = document.getElementById('abrir');
   var crudo = document.getElementById('crudo');
 
+  // B13 — Si el enlace cae aqui es que Android no lo verifico (o que quien lo
+  // abre no tiene la app). Se salta **solo** a la app en vez de pedir que
+  // pulsen un boton: el esquema propio `boardkeeper://` no necesita
+  // verificacion y abre siempre si esta instalada.
+  //
+  // Pero NO con `location = 'boardkeeper://...'`: en Chrome de Android, navegar
+  // a un esquema que nadie atiende da `ERR_UNKNOWN_URL_SCHEME` y **se lleva por
+  // delante esta pagina**, justo para el que NO tiene la app, que es a quien
+  // habia que explicarle las cosas. Se usa `intent://`, que es lo que Chrome
+  // entiende en Android y lleva su propio plan B: `S.browser_fallback_url` es
+  // adonde va si la app no esta, y aqui apunta a esta misma pagina con una
+  // marca para no volver a intentarlo y quedarse en bucle.
+  //
+  // Fuera de Chrome/Android no se intenta nada y queda el boton, que funciona
+  // igual. Es la regla de siempre: donde el canal no responde, nada se rompe.
+  var yaFallo = /[?&]sinapp=1/.test(location.search);
+
+  function intentarSalto() {
+    if (yaFallo || !/Android/i.test(navigator.userAgent)) return;
+    var vuelta = location.origin + location.pathname + '?sinapp=1' + location.hash;
+    location.replace(
+      'intent://p/' + carga +
+      '#Intent;scheme=boardkeeper;package=com.jors.boardkeeper' +
+      ';S.browser_fallback_url=' + encodeURIComponent(vuelta) + ';end'
+    );
+  }
+
   if (!carga) {
     abrir.style.display = 'none';
     crudo.style.display = 'none';
   } else {
     abrir.href = 'boardkeeper://p/' + carga;
     crudo.textContent = carga;
+    intentarSalto();
     try {
       // base64url sin relleno, como lo genera la app.
       var b64 = carga.replace(/-/g, '+').replace(/_/g, '/');
@@ -170,6 +198,19 @@
       // en blanco que parece que no ha hecho nada.
       document.getElementById('vacio').textContent =
         'El enlace parece incompleto. Pide que te lo manden otra vez.';
+    }
+
+    // Si hemos vuelto aqui por el plan B, es que la app no esta instalada: se
+    // dice, que es mas util que dejar un boton que tampoco va a funcionar.
+    if (yaFallo) {
+      abrir.textContent = 'VOLVER A INTENTARLO';
+      var aviso = document.createElement('p');
+      aviso.className = 'nota';
+      aviso.style.marginTop = '-4px';
+      aviso.textContent =
+        'No parece que tengas BoardKeeper en este movil. Instalala y vuelve a ' +
+        'tocar el enlace.';
+      abrir.parentNode.insertBefore(aviso, abrir.nextSibling);
     }
   }
 </script>
